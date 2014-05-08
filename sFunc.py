@@ -18,53 +18,100 @@ def save(path, image):
 def resize(image, factor):
 	return cv2.resize(image, (0, 0), fx=factor, fy=factor)
 
+# Blurs the image -- Not efficient and obviously worse output
+def blur(image, sigma):
+	image = np.uint8(image)
+	return np.float32(cv2.bilateralFilter(image, 5, sigma, sigma))
+	#return cv2.GaussianBlur(image, (5, 5), 0)
 
 # Tries to localize the Sudoku in the image
-def cornerDetection(image, imagecolor):
+def cornerDetection(image, imagecolor, filename):
 	#dst = cv2.cornerHarris(imfloat,2,3,0.04)
 	#dst = cv2.dilate(dst,None)
 	image = np.uint8(image)
 
-	edges = cv2.Canny(image, 50, 150, apertureSize=3)
+	edges = cv2.Canny(image, 50, 100, apertureSize=5)
 
-	lines = cv2.HoughLines(edges, 1, np.pi/180, 200)	
+	save("corners/" + filename + "_canny.jpg", edges)
 
-	minX = 1000
-	minY = 1000
-	minA = 1000
-	maxX = 0
-	maxY = 0
-	maxA = 0
+	contours, hierarchy = cv2.findContours(edges, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
 
+	cv2.drawContours(imagecolor, contours, -1, [0,255,0], 2, 8, hierarchy)
 
-	# 0 is top
-	# 1 is right
-	# 2 is bottom
-	# 3 is left
-	edgeLines = np.zeros((4, 2))
+	save("corners/" + filename + "_contours.jpg", imagecolor)
+
+	largestA = 0
+	index = 0
+	for contour in contours:
+		
+		A = cv2.contourArea(contour)
+
+		if A > largestA:
+			largestA = A
+			largestIndex = index
+		index+=1
+
+	#print contours[largestIndex]
+
+	bounding = cv2.minAreaRect(contours[largestIndex])
+
+	#print bounding
+
+	box = cv2.cv.BoxPoints(bounding)
+
+	#print box
+
+	boxX = np.array([int(box[0][0]), int(box[1][0]), int(box[2][0]), int(box[3][0])])
+	boxY = np.array([int(box[0][1]), int(box[1][1]), int(box[2][1]), int(box[3][1])])
+
+	edgesSudoku = edges[boxY.min():boxY.max(), boxX.min():boxX.max()]
+	__imagecolor = np.copy(imagecolor[boxY.min():boxY.max(), boxX.min():boxX.max()])
+
+	
+
+	lines = cv2.HoughLines(edgesSudoku, 1, np.pi/180, 150)
+
+	topYIntercept = 100000
+	topXIntercept = 0
+
+	bottomYIntercept = 0
+	bottomXIntercept = 0
+
+	leftXIntercept = 100000
+	leftYIntercept = 0
+
+	rightXIntercept = 0
+	rightYIntercept = 0
+
+	topLine = np.float32([1000,1000])
+	bottomLine = np.float32([-1000,-1000])
+	leftLine = np.float32([1000,1000])
+	rightLine = np.float32([-1000,-1000])
 
 	for rho,theta in lines[0]:
 
-		a = np.cos(theta)
-		b = np.sin(theta)
-		
-		x = a*rho
-		y = b*rho
-		
-		if (x < minX) & (abs(theta) > 0.785) & (abs(theta) < 2.356):
-			edgeLines[3] = [rho, theta]
-			minX = x
-		if (x > maxX) & (abs(theta) > 0.785) & (abs(theta) < 2.356):
-			edgeLines[1] = [rho, theta]
-			maxX = x
-		if (y < minY) & (abs(theta) < 0.785) & (abs(theta) > 5.498):
-			edgeLines[0] = [rho, theta]
-			minY = y
-		if (y > maxY) & (abs(theta) < 0.785) & (abs(theta) > 5.498):
-			edgeLines[2] = [rho, theta]
-			maxY = y
+		if theta == 0:
+			theta = 0.01
 
-	print edgeLines
+		x = rho/np.cos(theta)
+
+		y = rho/(np.cos(theta)*np.sin(theta))
+		
+		if (theta > np.pi*50/180) and (theta < np.pi*130/180):
+			if (rho < topLine[0]):
+				topLine = [rho, theta]
+
+			if (rho > bottomLine[0]):
+				bottomLine = [rho, theta]
+		elif (theta < np.pi*30/180) or (theta > np.pi*150/180):
+			if (x > rightXIntercept):
+				rightLine = [rho, theta]
+				rightXIntercept = x
+			elif (x <= leftXIntercept):
+				leftLine = [rho, theta]
+				leftXIntercept = x
+
+	edgeLines = np.array([topLine, bottomLine, leftLine, rightLine])
 
 	for rho,theta in edgeLines:
 		a = np.cos(theta)
@@ -78,14 +125,73 @@ def cornerDetection(image, imagecolor):
 		x2 = int(x0 - 1000*(-b))
 		y2 = int(y0 - 1000*(a))
 
-		cv2.line(imagecolor,(x1,y1),(x2,y2),(0,0,255),2)
+		cv2.line(__imagecolor,(x1,y1),(x2,y2),(0,0,255),2)
 
-	#contours, hierarchy = cv2.findContours(edge.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+	save("corners/" + filename + "_sudoku.jpg", __imagecolor)
 
-	#Find the rotated rectangles for each contour
-	#cv2.drawContours(imagecolor,contours,-1,(0,255,0),1,cv2.CV_AA, hierarchy)
+	for rho,theta in lines[0]:
+		a = np.cos(theta)
+		b = np.sin(theta)
+		
+		x0 = a*rho
+		y0 = b*rho
 
-	cv2.imwrite("./corners.jpg", imagecolor)
+		x1 = int(x0 + 1000*(-b))
+		y1 = int(y0 + 1000*(a))
+		x2 = int(x0 - 1000*(-b))
+		y2 = int(y0 - 1000*(a))
+
+		cv2.line(__imagecolor,(x1,y1),(x2,y2),(0,0,255),2)
+
+	save("corners/" + filename + "_all.jpg", __imagecolor)
+	# top, bottom, left, right
+	equations = np.float32([[0,0], [0,0], [0,0], [0,0]])
+
+	i = 0
+	for rho,theta in edgeLines:
+		m = (-np.cos(theta))/(np.sin(theta))
+		b = rho/np.sin(theta)
+
+		equations[i] = [m, b]
+
+		i+=1
+
+	# bottom - left | top - left | top - right | bottom - right
+	sudokuEdges = np.float32([[0,0], [0,0], [0,0], [0,0]])
+
+
+	# bottom - left
+	x = equations[2][0] - equations[1][0]
+	n = equations[1][1] - equations[2][1]
+	intersecX = n / x
+	intersecY = equations[2][0] * intersecX + equations[2][1]
+	sudokuEdges[0] = [intersecX, intersecY]
+
+
+	# top - left
+	x = equations[2][0] - equations[0][0]
+	n = equations[0][1] - equations[2][1]
+	intersecX = n / x
+	intersecY = equations[2][0] * intersecX + equations[2][1]
+	sudokuEdges[1] = [intersecX, intersecY]
+
+
+	# top - right
+	x = equations[3][0] - equations[0][0]
+	n = equations[0][1] - equations[3][1]
+	intersecX = n / x
+	intersecY = equations[3][0] * intersecX + equations[3][1]
+	sudokuEdges[2] = [intersecX, intersecY]
+
+
+	# bottom - right
+	x = equations[3][0] - equations[1][0]
+	n = equations[1][1] - equations[3][1]
+	intersecX = n / x
+	intersecY = equations[3][0] * intersecX + equations[3][1]
+	sudokuEdges[3] = [intersecX, intersecY]
+
+	return transformManual(imagecolor[boxY.min():boxY.max(), boxX.min():boxX.max()], sudokuEdges)
 
 # Manually create the transform-matrix to shift the sudoku into a 1000x1000 image
 def transformManual(image, corners):
@@ -102,16 +208,16 @@ def transformManual(image, corners):
 	y4 = corners[3][1]
 
 	
-	x11 = 1000.0
+	x11 = 0.0
 	y11 = 1000.0
 
-	x22 = 1000.0
+	x22 = 0.0
 	y22 = 0.0
 
-	x33 = 0.0
+	x33 = 1000.0
 	y33 = 0.0
 
-	x44 = 0.0
+	x44 = 1000.0
 	y44 = 1000.0
 
 
