@@ -5,14 +5,21 @@ import sys
 import sFunc
 import os.path
 import re
+import argparse
 
-if len(sys.argv) < 2:
-	print "Usage:", sys.argv[0], "input-file"
-	print "- Creates output in folders: binary, corners and final"
-	sys.exit(-1)
+# instanciate and configure an argument parser
+parser = argparse.ArgumentParser(description='Analyzes and solves a Sudoku from a taken Image')
 
-imgIn = sys.argv[1]
+parser.add_argument('image', metavar='IMG',
+	help='an Image of a Sudodoku. If specified a full processing-cycle on this Image is performded')
 
+# parse input arguments
+args = parser.parse_args()
+
+# the input image
+imgIn = args.image
+
+# check for invalid filename
 if not os.path.isfile(imgIn):
 	print imgIn, "- file not found"
 	sys.exit(-1)
