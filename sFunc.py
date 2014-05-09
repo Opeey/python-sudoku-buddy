@@ -23,7 +23,7 @@ def scale(image, factor):
 def greyscale(image):
 	return np.mean(image, axis=2)
 
-# Blurs the image -- Not efficient and obviously worse output
+# Blurs the image with gaussianBlur
 def blur(image):
 	return np.double(cv2.GaussianBlur(image, (5, 5), 0))
 
@@ -67,27 +67,29 @@ def binary(image, size=15):
 
 	return binary
 
+# Calculates the intersection of f and g
+def intersection(f, g):
+	x = g[0] - f[0]
+	n = f[1] - g[1]
+	intersecX = n / x
+	intersecY = g[0] * intersecX + g[1]
+	return np.double([intersecX, intersecY])
+
 # Tries to localize the Sudoku in the image and gives back the corners in an array
 # image - a binary image
-# imagecolor - the color version, just for painting - will be deleted later
-# filename - just for painting - will be deleted later
-def cornerDetection(image, imagecolor, filename):
+def cornerDetection(binary, image):
 	# Convert the image to uint8, canny needs this
-	image = np.uint8(image)
+	binary = np.uint8(binary)
 
 	# The Canny algorithm detects the edges of the given binary image
-	edges = cv2.Canny(image, 50, 100, apertureSize=5)
+	edges = cv2.Canny(binary, 50, 100, apertureSize=5)
 
+	# We dilate the Edges, so the Sudoku-Border can be recognized better
 	edges = cv2.dilate(edges, cv2.getStructuringElement(cv2.MORPH_CROSS, (3,3)))
 
-	save("corners/" + filename + "_canny.jpg", edges)
-
-
+	# findContours, we can use them to find the largest Area in the picture
+	# and assume that this is the sudoku
 	contours, hierarchy = cv2.findContours(edges, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-
-	cv2.drawContours(imagecolor, contours, -1, [0,255,0], 2, 8, hierarchy)
-
-	save("corners/" + filename + "_contours.jpg", imagecolor)
 
 	# We assume that the Contour, with the largest Area is the Sudoku
 	# So we loop over all contours and find the largest
@@ -104,11 +106,13 @@ def cornerDetection(image, imagecolor, filename):
 			largestIndex = i
 		i+=1
 
-	# Take the smallest (possibly rotated) rectangle of 
+	# Take the smallest (possibly rotated) rectangle of the contour
 	bounding = cv2.minAreaRect(contours[largestIndex])
 
+	# And calculate the Coordinates of the corners
 	box = cv2.cv.BoxPoints(bounding)
 
+	# Put X and Y Values in arrays
 	boxX = np.array([int(box[0][0]), int(box[1][0]), int(box[2][0]), int(box[3][0])])
 	boxY = np.array([int(box[0][1]), int(box[1][1]), int(box[2][1]), int(box[3][1])])
 
@@ -131,15 +135,15 @@ def cornerDetection(image, imagecolor, filename):
 		yMax = 0	
 	
 	# Cut the image to the area, we found with minAreRect
-	edgesSudoku = edges[yMin:yMax, xMin:xMax]
-	__imagecolor = np.copy(imagecolor[yMin:yMax, xMin:xMax])
-	
-	save("corners/" + filename + "_area.jpg", __imagecolor)
+	sudokuArea = edges[yMin:yMax, xMin:xMax]
 
-	maxLength = np.array([edgesSudoku.shape[0], edgesSudoku.shape[1]]).max()
+	# Get the height or widht, whatever is bigger
+	maxLength = np.array([sudokuArea.shape[0], sudokuArea.shape[1]]).max()
 
-	lines = cv2.HoughLines(edgesSudoku, 1, np.pi/180, int(maxLength*0.5))
+	# Now calculate the HoughLines
+	lines = cv2.HoughLines(sudokuArea, 1, np.pi/180, int(maxLength*0.5))
 
+	# We start with ridiculous high or low values
 	topYIntercept = 100000.0
 	topXIntercept = 0.0
 
@@ -157,6 +161,7 @@ def cornerDetection(image, imagecolor, filename):
 	leftLine = np.double([1000.0,1000.0])
 	rightLine = np.double([-1000.0,-1000.0])
 
+	# Loop over all lines, and get the most left, most right, most up and most down
 	for rho,theta in lines[0]:
 
 		# Workaround, when the angle is 0 there would be a divide by zero error, so we assume it is 0.001
@@ -164,9 +169,10 @@ def cornerDetection(image, imagecolor, filename):
 			theta = 0.001
 
 		x = rho/np.cos(theta)
-
 		y = rho/(np.cos(theta)*np.sin(theta))
 		
+		# We assume that the top and bottom lines are between 50 and 130 degrees
+		# and the left and right are between 150 and 30 degrees
 		if (theta > np.pi*50/180) and (theta < np.pi*130/180):
 			if (rho < topLine[0]):
 				topLine = [rho, theta]
@@ -181,19 +187,13 @@ def cornerDetection(image, imagecolor, filename):
 				leftLine = [rho, theta]
 				leftXIntercept = x
 
+	# Put the lines in an array
 	edgeLines = np.array([topLine, bottomLine, leftLine, rightLine])
-
-	# Paint the lines, we found as edgeLines
-	paintLines(__imagecolor, edgeLines)
-	save("corners/" + filename + "_sudoku.jpg", __imagecolor)
-
-	# Paint ALL the lines
-	paintLines(__imagecolor, lines[0])
-	save("corners/" + filename + "_all.jpg", __imagecolor)
 
 	# top, bottom, left, right
 	equations = np.double([[0,0], [0,0], [0,0], [0,0]])
 
+	# Calculate the equation for every line
 	i = 0
 	for rho,theta in edgeLines:
 		m = (-np.cos(theta))/(np.sin(theta))
@@ -206,56 +206,21 @@ def cornerDetection(image, imagecolor, filename):
 	# bottom - left | top - left | top - right | bottom - right
 	sudokuEdges = np.double([[0,0], [0,0], [0,0], [0,0]])
 
+	# Calculate the four intersects of the equations
 
 	# bottom - left
-	x = equations[2][0] - equations[1][0]
-	n = equations[1][1] - equations[2][1]
-	intersecX = n / x
-	intersecY = equations[2][0] * intersecX + equations[2][1]
-	sudokuEdges[0] = [intersecX, intersecY]
-
+	sudokuEdges[0] = intersection(equations[1], equations[2])
 
 	# top - left
-	x = equations[2][0] - equations[0][0]
-	n = equations[0][1] - equations[2][1]
-	intersecX = n / x
-	intersecY = equations[2][0] * intersecX + equations[2][1]
-	sudokuEdges[1] = [intersecX, intersecY]
-
+	sudokuEdges[1] = intersection(equations[0], equations[2])
 
 	# top - right
-	x = equations[3][0] - equations[0][0]
-	n = equations[0][1] - equations[3][1]
-	intersecX = n / x
-	intersecY = equations[3][0] * intersecX + equations[3][1]
-	sudokuEdges[2] = [intersecX, intersecY]
-
+	sudokuEdges[2] = intersection(equations[0], equations[3])
 
 	# bottom - right
-	x = equations[3][0] - equations[1][0]
-	n = equations[1][1] - equations[3][1]
-	intersecX = n / x
-	intersecY = equations[3][0] * intersecX + equations[3][1]
-	sudokuEdges[3] = [intersecX, intersecY]
+	sudokuEdges[3] = intersection(equations[1], equations[3])
 
-	return transform(imagecolor[yMin:yMax, xMin:xMax], sudokuEdges)
-
-def paintLines(image, lines):
-	for rho,theta in lines:
-		a = np.cos(theta)
-		b = np.sin(theta)
-		
-		x0 = a*rho
-		y0 = b*rho
-
-		x1 = int(x0 + 1000*(-b))
-		y1 = int(y0 + 1000*(a))
-		x2 = int(x0 - 1000*(-b))
-		y2 = int(y0 - 1000*(a))
-
-		cv2.line(image,(x1,y1),(x2,y2),(0,0,255),2)
-
-	return image
+	return transform(image[yMin:yMax, xMin:xMax], sudokuEdges)
 
 # Creates the transform-matrix to shift the sudoku from the given corners into an new image
 def transform(image, corners):
