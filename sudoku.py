@@ -11,7 +11,7 @@ import argparse
 parser = argparse.ArgumentParser(description='Analyzes and solves a Sudoku from a taken Image')
 
 parser.add_argument('image', metavar='IMG',
-	help='an Image of a Sudodoku. If specified a full processing-cycle on this Image is performded')
+	help='an Image of a Sudoku. If specified a full processing-cycle on this Image is performed')
 
 # parse input arguments
 args = parser.parse_args()
@@ -24,9 +24,7 @@ if not os.path.isfile(imgIn):
 	print imgIn, "- file not found"
 	sys.exit(-1)
 
-result = re.split('/', imgIn)
-filename = result[-1].replace('.jpg', '')
-
+filename = os.path.basename(imgIn)
 image = sFunc.open(imgIn)
 
 if image.shape[1] > 1200:
@@ -38,10 +36,7 @@ grey = sFunc.greyscale(image)
 blurred = sFunc.blur(grey)
 
 binary = sFunc.binary(blurred, 10)
-sFunc.save("binary/" + filename + ".jpg", binary)
 
-corners = sFunc.cornerDetection(binary, image, result[-1].replace('.jpg', ''))
+corners = sFunc.cornerDetection(binary, image)
 
-#trans = sFunc.transform(image, corners)
-
-sFunc.save("final/" + filename + ".jpg", corners)
+sFunc.save("out_" + filename, corners)
