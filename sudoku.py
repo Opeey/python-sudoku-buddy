@@ -39,7 +39,7 @@ binary = sFunc.binary(blurred, 10)
 
 corners = sFunc.cornerDetection(binary)
 
-trans = transform(image, corners)
+trans = sFunc.transform(image, corners)
 
 raster = sFunc.raster(trans)
 
