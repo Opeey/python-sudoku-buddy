@@ -37,6 +37,10 @@ blurred = sFunc.blur(grey)
 
 binary = sFunc.binary(blurred, 10)
 
-corners = sFunc.cornerDetection(binary, image)
+corners = sFunc.cornerDetection(binary)
 
-sFunc.save("out_" + filename, corners)
+trans = transform(image, corners)
+
+raster = sFunc.raster(trans)
+
+sFunc.save("out_" + filename, trans)
