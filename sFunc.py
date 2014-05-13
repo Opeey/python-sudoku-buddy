@@ -175,16 +175,16 @@ def cornerDetection(binary):
 		# and the left and right are between 150 and 30 degrees
 		if (theta > np.pi*50/180) and (theta < np.pi*130/180):
 			if (rho < topLine[0]):
-				topLine = [rho, theta]
+				topLine = np.double([rho, theta])
 
 			if (rho > bottomLine[0]):
-				bottomLine = [rho, theta]
+				bottomLine = np.double([rho, theta])
 		elif (theta < np.pi*30/180) or (theta > np.pi*150/180):
 			if (x > rightXIntercept):
-				rightLine = [rho, theta]
+				rightLine = np.double([rho, theta])
 				rightXIntercept = x
 			elif (x <= leftXIntercept):
-				leftLine = [rho, theta]
+				leftLine = np.double([rho, theta])
 				leftXIntercept = x
 
 	# Put the lines in an array
