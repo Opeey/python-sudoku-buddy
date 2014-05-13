@@ -34,7 +34,7 @@ def blur(np.ndarray[double, ndim=2] image):
 
 # Calculates a binary from given greyscale image.
 # Uses the sauvola-algorithm and a window of size*size
-def binary(np.ndarray[double, ndim=2] image, int size=15):
+def binarize(np.ndarray[double, ndim=2] image, int size=15):
 	cdef np.ndarray[double, ndim=2] tmp0, tmp1, tmp2, va, vb, binary
 	cdef int oldSize, y, x
 	cdef double my, i, o, k, t
@@ -56,8 +56,8 @@ def binary(np.ndarray[double, ndim=2] image, int size=15):
 				size = min(x,y)
 
 			if (size > 0):
-				my = (va[y][x]-va[y-size][x]-va[y][x-size]+va[y-size][x-size])/size**2
-				i = ((vb[y,x]-vb[y-size,x]-vb[y,x-size]+vb[y-size,x-size])/size**2)-(my**2)
+				my = float((va[y][x]-va[y-size][x]-va[y][x-size]+va[y-size][x-size])/size**2)
+				i = float(((vb[y,x]-vb[y-size,x]-vb[y,x-size]+vb[y-size,x-size])/size**2)-(my**2))
 				if (i < 0):
 					i = 0
 				o = np.sqrt(i)
