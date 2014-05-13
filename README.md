@@ -33,6 +33,37 @@ So if you want to get the Pixel with X=100 and Y=500, you have to say NumPy to g
 This can be pretty confusing cause OpenCV takes X first and Y second in it's methods.
 You will see how it works later.
 
+## Getting started
+When you load an image into a numpy array, without any specification in 'imread()' it's read in format
+uint8 - 8 bit unsigned int, which is 0 to 255 - so it's perfect for colors in an image.
+Now you can use the usual way to access one pixel: image[Y][X]
 
+### Greyscale
+With this information you can implement a greyscale-method.
+NumPy and OpenCV have a couple of ways to greyscale an image, but i simply meaned the whole image.
+
+	def greyscale(image):
+		return np.mean(image, axis=2)
+	
+## Binarize
+To get a binary image out of the greyscaled version, we need to touch each pixel and decide if the pixel is fore-, or background. Depending on this, the pixel in the binary version will be painted white oder black.
+But how do we decide what is fore-, and what is background?
+We could simply set a threshold of i.e. 128, but that would not work for a very dark or light image.
+So the threshold depends on how dark the image, respectively the surrounding pixels are.
+
+### Sauvola
+There are several formulas to calculate the threshold, i use the sauvola-formula because it works pretty good
+for sudoku images.
+
+	T(x,y) := μ(x,y) * (1 + k * ( s(x,y)/s'(x,y) - 1) )
+	where k is 0.2 or 0.5
+	s' is the maximal standard deviation, which is 128 in 8-bit
+	
+So you choose a window, how many pixels you want to look at. This could be 10x10 pixels or something else, you need to
+try which value gives you the best results.
+You mean the values and use the sauvola-formula.
+
+For an example (and improvement) look at the binary() function in sFunc.py
+	
 Any Questions?
 Ask me at patrickhenrici@gmx.de
