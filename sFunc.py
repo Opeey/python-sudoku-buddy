@@ -77,7 +77,7 @@ def intersection(f, g):
 
 # Tries to localize the Sudoku in the image and gives back the corners in an array
 # image - a binary image
-def cornerDetection(binary, image):
+def cornerDetection(binary):
 	# Convert the image to uint8, canny needs this
 	binary = np.uint8(binary)
 
@@ -220,7 +220,14 @@ def cornerDetection(binary, image):
 	# bottom - right
 	sudokuEdges[3] = intersection(equations[1], equations[3])
 
-	return transform(image[yMin:yMax, xMin:xMax], sudokuEdges)
+
+	# calculate back to global coordinates
+	i = 0
+	for edge in sudokuEdges:
+		sudokuEdges[i] = [(edge[0]+xMin), (edge[1]+yMin)]
+		i+=1
+
+	return sudokuEdges
 
 # Creates the transform-matrix to shift the sudoku from the given corners into an new image
 def transform(image, corners):
@@ -270,3 +277,23 @@ def transform(image, corners):
 	T = cv2.warpPerspective(image,M,(width,height))
 
 	return T
+
+# Creates an array which holds any field in the sudoku
+def raster(image):
+	imgHeight = image.shape[0]
+	imgWidth = image.shape[1]
+
+	fieldHeight = int(imgHeight/9)
+	fieldWidth = int(imgWidth/9)
+
+	raster = np.zeros((9,9,fieldHeight,fieldWidth,3))
+	
+	y = 0
+	for line in raster:
+		x = 0
+		for field in line:
+			raster[y][x] = np.copy(image[(fieldHeight*y):((fieldHeight*y)+fieldHeight), (fieldWidth*x):((fieldWidth*x)+fieldWidth)])
+			x+=1
+		y+=1
+
+	return raster
