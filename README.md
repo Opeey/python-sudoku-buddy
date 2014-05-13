@@ -65,5 +65,17 @@ You mean the values and use the sauvola-formula.
 
 For an example (and improvement) look at the binary() function in sFunc.py
 	
+### Blurring the image
+On some images, the binarized version is not a sufficient outcome for later operations.
+So we can improve the outcome of the binarized image, when we optimize the income.
+Sometimes the image may be very noisy, so the binarized image will have many unwanted 'foreground'-parts.
+To change that, we just blur the image before binarizing, so the noise will not be detected as foreground.
+
+	# Blurs the image with gaussianBlur
+	def blur(image):
+		return cv2.GaussianBlur(image, (5, 5), 0)
+
+
+
 Any Questions?
 Ask me at patrickhenrici@gmx.de
