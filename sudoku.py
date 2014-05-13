@@ -35,7 +35,7 @@ if image.shape[0] > 1200:
 grey = sFunc.greyscale(image)
 blurred = sFunc.blur(grey)
 
-binary = sFunc.binary(blurred, 10)
+binary = sFunc.binarize(blurred, 10)
 
 corners = sFunc.cornerDetection(binary)
 
