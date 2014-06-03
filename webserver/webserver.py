@@ -226,7 +226,7 @@ class Images:
 		if not os.path.isdir(os.path.join('./', 'tmp/')):
 			os.mkdir(os.path.join('./', 'tmp/'))
 
-		filename = os.path.join('/', 'tmp/', _id+'.jpg')
+		filename = os.path.join('./', 'tmp/', _id+'.jpg')
 
 		f = open(filename, "w")
 
@@ -256,7 +256,7 @@ class Images:
 
 		sFunc.save(filename, trans)
 
-		return "<img src=\""+filename+"\" alt=\"image\">"
+		return "<img src=\""+os.path.join('/', 'tmp/', _id+'.jpg')+"\" alt=\"image\">"
 
 
 # increase server socket timeout to 60s; we are more tolerant of bad
