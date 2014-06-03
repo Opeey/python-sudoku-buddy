@@ -43,9 +43,6 @@ binary = sFunc.binarize(blurred, 10)
 corners = sFunc.cornerDetection(binary)
 
 pts = os.path.join('./', 'pts', filename+'.pts')
-#ptsFile = os.path.join('./', filename+'.pts')
-
-#ptsFile = open(ptsFile, 'w')
 
 failed = False
 # check for valid corners, if pts file is specified
@@ -74,11 +71,9 @@ if os.path.isfile(pts):
 else:
 	print "WARNING: No .pts file found"
 
-if not failed:
+if failed:
 	print "ERROR: One or more corner-points don't match with the trainings-data, aborting..."
 	sys.exit(-1)
-
-#ptsFile.close()
 
 trans = sFunc.transform(image, corners)
 
