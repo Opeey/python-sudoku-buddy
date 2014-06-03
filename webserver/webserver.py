@@ -2,20 +2,20 @@
 # -*- coding: utf-8 -*-
 
 import cherrypy
-import cv2
-import sFunc
+import uuid
 import os
 import re
-import numpy as np
-import uuid
 
-import cgi
-import tempfile
+import cv2
+import numpy as np
+
+import sFunc
 
 import ctypes
 from ctypes import c_int
 libsa = ctypes.CDLL("./libsa.so.1.0")
 
+# resets the cookies, called when an error occurs
 def reset():
 
 	cookie = cherrypy.response.cookie
@@ -31,7 +31,7 @@ def reset():
 
 	return "Reset successful."
 
-
+# adds a new cookie, or change the value
 def addCookie(key, value):
 	cookie = cherrypy.response.cookie
 
@@ -39,6 +39,7 @@ def addCookie(key, value):
 	cookie[key]['path'] = '/'
 	cookie[key]['max-age'] = 3600
 
+# returns the value of a cookie or an empty string, when the cookie doesn't exist
 def getCookie(key):
 	cookie = cherrypy.request.cookie
 
@@ -47,6 +48,7 @@ def getCookie(key):
 	else:
 		return ""
 
+# deletes a cookie (deletes value and let it expire)
 def deleteCookie(key):
 	cookie = cherrypy.response.cookie
 	request = cherrypy.request.cookie
@@ -55,41 +57,27 @@ def deleteCookie(key):
 		cookie[key] = ""
 		cookie[key]['expires'] = 0
 
-class myFieldStorage(cgi.FieldStorage):
-	"""Our version uses a named temporary file instead of the default
-	non-named file; keeping it visibile (named), allows us to create a
-	2nd link after the upload is done, thus avoiding the overhead of
-	making a copy to the destination filename."""
-	
-	def make_file(self, binary=None):
-		return tempfile.NamedTemporaryFile()
-
-
-def noBodyProcess():
-	"""Sets cherrypy.request.process_request_body = False, giving
-	us direct control of the file upload destination. By default
-	cherrypy loads it to memory, we are directing it to disk."""
-	cherrypy.request.process_request_body = False
-
-cherrypy.tools.noBodyProcess = cherrypy.Tool('before_request_body', noBodyProcess)
 
 class Sudoku(object):
-	
+
+	# If an error occurs, just call reset()	- not very fancy
 	_cp_config = {'request.error_response': reset}
 
+	# returns the <head>-part of the html, with js part. Own code is in var js
 	def printHead(self, js=""):
 		return """
 			<head>
 				<meta charset="utf-8">
 				<title>Sudoku</title>
 				<link rel="stylesheet" type="text/css" href="css/style.css">
-				<script src="js/jquery-2.1.1.min.js" type="text/javascript"></script>
 				"""+self.javascript(js)+"""
 			</head>
 		"""
 
+	# creates the javascript and returns it
 	def javascript(self, ownCode=""):
 		return """
+				<script src="js/jquery-2.1.1.min.js" type="text/javascript"></script>
 				<script src="js/sudoku.js" type="text/javascript"></script>
 				<script type="text/javascript">
 					<!--
@@ -116,9 +104,11 @@ class Sudoku(object):
 				</script>
 		"""
 
+	# prints the body, stored in html/body.html
 	def printBody(self):
 		return open(os.path.join('./', 'html/', 'body.html')).read()
 
+	# controller - collects all needed data and creates the page
 	@cherrypy.expose
 	def index(self, error="", refresh=False):
 
@@ -164,6 +154,7 @@ class Sudoku(object):
 
 		return "<!DOCTYPE HTML>\n<html>\n" + head + body + "\n</html>"
 
+	# called when an .gt file is uploaded
 	@cherrypy.expose
 	def upload(self, sudoku):
 
@@ -173,6 +164,7 @@ class Sudoku(object):
 
 		return self.index(refresh=True)
 
+	# solves the sudoku and writes the return in a cookie
 	@cherrypy.expose
 	def solve(self):
 		cookie = cherrypy.request.cookie
@@ -198,6 +190,7 @@ class Sudoku(object):
 
 		return self.index(refresh=True)
 
+	# resets the cookies, start a fresh sudoku
 	@cherrypy.expose
 	def new(self):
 
@@ -206,27 +199,9 @@ class Sudoku(object):
 
 		return self.index(refresh=True)
 
-class myFieldStorage(cgi.FieldStorage):
-	"""Our version uses a named temporary file instead of the default
-	non-named file; keeping it visibile (named), allows us to create a
-	2nd link after the upload is done, thus avoiding the overhead of
-	making a copy to the destination filename."""
-	
-	def make_file(self, binary=None):
-		return tempfile.NamedTemporaryFile()
-
-
-def noBodyProcess():
-	"""Sets cherrypy.request.process_request_body = False, giving
-	us direct control of the file upload destination. By default
-	cherrypy loads it to memory, we are directing it to disk."""
-	cherrypy.request.process_request_body = False
-
-cherrypy.tools.noBodyProcess = cherrypy.Tool('before_request_body', noBodyProcess)
-
-
 class Images:
 	
+	# upload mask
 	@cherrypy.expose
 	def index(self):		
 		return """
@@ -240,6 +215,7 @@ class Images:
 			</html>
 			"""
 	
+	# creates file for the image and processes it
 	@cherrypy.expose
 	def upload(self, sudoku):
 		_id = getCookie("id")
