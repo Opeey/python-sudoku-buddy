@@ -1,0 +1,78 @@
+.wrapper{
+	height: 720px;
+	width: 1280px;
+	margin: auto;
+}
+
+.navi {
+	width: 720px;
+	height: 50px;
+	margin: auto;
+}
+
+.navi input {
+	float:left;
+	margin-left: 10px;
+}
+
+.sudoku {
+	margin: auto;
+	width: 720px;
+}
+
+.rect {
+	width: 220px;
+	height: 220px;
+	float:left;
+}
+
+.cell {
+	width: 70px;
+	height: 70px;
+	text-align: center;
+	font-size: 50px;
+	float: left;
+	border: 1px solid;
+}
+
+.cell p {
+	position: relative;
+	top: -45px;
+}
+
+.navi input {
+	font-size: 20px;
+}
+
+.error {
+	display: none;
+	width: 720px;
+	height: 40px;
+	background: #FF9494;
+	border: 1px solid;
+	margin: 15px 0 10px 255px;
+}
+
+.error p {
+	display: inherit;
+	font-weight: bold;
+	font-size: 20px;
+	text-align: center;
+	margin: 8px 20px;
+}
+
+.close {
+	position: relative;
+	height: 30px;
+	width: 30px;
+	top: -15px;
+	right: -15px;
+	background: url("../img/close.png") no-repeat scroll 0 0 transparent;
+	float: right;
+	cursor: pointer;
+
+}
+
+.hidden {
+	display:none;
+}

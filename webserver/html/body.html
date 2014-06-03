@@ -1,0 +1,283 @@
+<body>
+	<div class="wrapper">
+		<div class="error">
+			<div class="close"></div>
+			<p>No error occured!</p>
+		</div>
+		<div class="navi">
+			<form action="upload" method="post" enctype="multipart/form-data">
+				<input id="upload" name="sudoku" type="file">
+			</form>
+
+			<form action="solve" method="post" enctype="multipart/form-data">
+				<input id="solve" type="button" value="Lösen lassen">
+			</form>
+
+			<form action="new" method="post" enctype="multipart/form-data">
+				<input id="new" type="button" value="Neustart">
+			</form>
+		</div>
+		<div class="sudoku">
+			<div class = "rect">
+				<div data-i="0" data-j="0" class="cell">
+					<p></p>
+				</div>
+				<div data-i="0" data-j="1" class="cell">
+					<p></p>
+				</div>
+				<div data-i="0" data-j="2" class="cell">
+					<p></p>
+				</div>
+				<div data-i="1" data-j="0" class="cell">
+					<p></p>
+				</div>
+				<div data-i="1" data-j="1" class="cell">
+					<p></p>
+				</div>
+				<div data-i="1" data-j="2" class="cell">
+					<p></p>
+				</div>
+				<div data-i="2" data-j="0" class="cell">
+					<p></p>
+				</div>
+				<div data-i="2" data-j="1" class="cell">
+					<p></p>
+				</div>
+				<div data-i="2" data-j="2" class="cell">
+					<p></p>
+				</div>
+			</div>
+			<div class = "rect">
+				<div data-i="0" data-j="3" class="cell">
+					<p></p>
+				</div>
+				<div data-i="0" data-j="4" class="cell">
+					<p></p>
+				</div>
+				<div data-i="0" data-j="5" class="cell">
+					<p></p>
+				</div>
+				<div data-i="1" data-j="3" class="cell">
+					<p></p>
+				</div>
+				<div data-i="1" data-j="4" class="cell">
+					<p></p>
+				</div>
+				<div data-i="1" data-j="5" class="cell">
+					<p></p>
+				</div>
+				<div data-i="2" data-j="3" class="cell">
+					<p></p>
+				</div>
+				<div data-i="2" data-j="4" class="cell">
+					<p></p>
+				</div>
+				<div data-i="2" data-j="5" class="cell">
+					<p></p>
+				</div>
+			</div>
+			<div class = "rect">
+				<div data-i="0" data-j="6" class="cell">
+					<p></p>
+				</div>
+				<div data-i="0" data-j="7" class="cell">
+					<p></p>
+				</div>
+				<div data-i="0" data-j="8" class="cell">
+					<p></p>
+				</div>
+				<div data-i="1" data-j="6" class="cell">
+					<p></p>
+				</div>
+				<div data-i="1" data-j="7" class="cell">
+					<p></p>
+				</div>
+				<div data-i="1" data-j="8" class="cell">
+					<p></p>
+				</div>
+				<div data-i="2" data-j="6" class="cell">
+					<p></p>
+				</div>
+				<div data-i="2" data-j="7" class="cell">
+					<p></p>
+				</div>
+				<div data-i="2" data-j="8" class="cell">
+					<p></p>
+				</div>
+			</div>
+			<div class = "rect">
+				<div data-i="3" data-j="0" class="cell">
+					<p></p>
+				</div>
+				<div data-i="3" data-j="1" class="cell">
+					<p></p>
+				</div>
+				<div data-i="3" data-j="2" class="cell">
+					<p></p>
+				</div>
+				<div data-i="4" data-j="0" class="cell">
+					<p></p>
+				</div>
+				<div data-i="4" data-j="1" class="cell">
+					<p></p>
+				</div>
+				<div data-i="4" data-j="2" class="cell">
+					<p></p>
+				</div>
+				<div data-i="5" data-j="0" class="cell">
+					<p></p>
+				</div>
+				<div data-i="5" data-j="1" class="cell">
+					<p></p>
+				</div>
+				<div data-i="5" data-j="2" class="cell">
+					<p></p>
+				</div>
+			</div>
+			<div class = "rect">
+				<div data-i="3" data-j="3" class="cell">
+					<p></p>
+				</div>
+				<div data-i="3" data-j="4" class="cell">
+					<p></p>
+				</div>
+				<div data-i="3" data-j="5" class="cell">
+					<p></p>
+				</div>
+				<div data-i="4" data-j="3" class="cell">
+					<p></p>
+				</div>
+				<div data-i="4" data-j="4" class="cell">
+					<p></p>
+				</div>
+				<div data-i="4" data-j="5" class="cell">
+					<p></p>
+				</div>
+				<div data-i="5" data-j="3" class="cell">
+					<p></p>
+				</div>
+				<div data-i="5" data-j="4" class="cell">
+					<p></p>
+				</div>
+				<div data-i="5" data-j="5" class="cell">
+					<p></p>
+				</div>
+			</div>
+			<div class = "rect">
+				<div data-i="3" data-j="6" class="cell">
+					<p></p>
+				</div>
+				<div data-i="3" data-j="7" class="cell">
+					<p></p>
+				</div>
+				<div data-i="3" data-j="8" class="cell">
+					<p></p>
+				</div>
+				<div data-i="4" data-j="6" class="cell">
+					<p></p>
+				</div>
+				<div data-i="4" data-j="7" class="cell">
+					<p></p>
+				</div>
+				<div data-i="4" data-j="8" class="cell">
+					<p></p>
+				</div>
+				<div data-i="5" data-j="6" class="cell">
+					<p></p>
+				</div>
+				<div data-i="5" data-j="7" class="cell">
+					<p></p>
+				</div>
+				<div data-i="5" data-j="8" class="cell">
+					<p></p>
+				</div>
+			</div><div class = "rect">
+				<div data-i="6" data-j="0" class="cell">
+					<p></p>
+				</div>
+				<div data-i="6" data-j="1" class="cell">
+					<p></p>
+				</div>
+				<div data-i="6" data-j="2" class="cell">
+					<p></p>
+				</div>
+				<div data-i="7" data-j="0" class="cell">
+					<p></p>
+				</div>
+				<div data-i="7" data-j="1" class="cell">
+					<p></p>
+				</div>
+				<div data-i="7" data-j="2" class="cell">
+					<p></p>
+				</div>
+				<div data-i="8" data-j="0" class="cell">
+					<p></p>
+				</div>
+				<div data-i="8" data-j="1" class="cell">
+					<p></p>
+				</div>
+				<div data-i="8" data-j="2" class="cell">
+					<p></p>
+				</div>
+			</div>
+			<div class = "rect">
+				<div data-i="6" data-j="3" class="cell">
+					<p></p>
+				</div>
+				<div data-i="6" data-j="4" class="cell">
+					<p></p>
+				</div>
+				<div data-i="6" data-j="5" class="cell">
+					<p></p>
+				</div>
+				<div data-i="7" data-j="3" class="cell">
+					<p></p>
+				</div>
+				<div data-i="7" data-j="4" class="cell">
+					<p></p>
+				</div>
+				<div data-i="7" data-j="5" class="cell">
+					<p></p>
+				</div>
+				<div data-i="8" data-j="3" class="cell">
+					<p></p>
+				</div>
+				<div data-i="8" data-j="4" class="cell">
+					<p></p>
+				</div>
+				<div data-i="8" data-j="5" class="cell">
+					<p></p>
+				</div>
+			</div>
+			<div class = "rect">
+				<div data-i="6" data-j="6" class="cell">
+					<p></p>
+				</div>
+				<div data-i="6" data-j="7" class="cell">
+					<p></p>
+				</div>
+				<div data-i="6" data-j="8" class="cell">
+					<p></p>
+				</div>
+				<div data-i="7" data-j="6" class="cell">
+					<p></p>
+				</div>
+				<div data-i="7" data-j="7" class="cell">
+					<p></p>
+				</div>
+				<div data-i="7" data-j="8" class="cell">
+					<p></p>
+				</div>
+				<div data-i="8" data-j="6" class="cell">
+					<p></p>
+				</div>
+				<div data-i="8" data-j="7" class="cell">
+					<p></p>
+				</div>
+				<div data-i="8" data-j="8" class="cell">
+					<p></p>
+				</div>
+			</div>
+		</div>
+	</div>
+</body>
