@@ -7,7 +7,7 @@ for f in $FILES
 do
 	if [ -f "$f" ]; then
 		echo "Processing $f..."
-		./sudoku.py $f
+		python ./sudoku.py $f
 
 		if [ $? -eq 0 ]; then
 			success=$(($success+1))
@@ -16,4 +16,5 @@ do
 	fi
 done
 
-echo "$((($success / $all) * 100))% of the data, successfully completed"
+echo "Processed $((all)) images."
+echo "Successfull: $(($success))"
