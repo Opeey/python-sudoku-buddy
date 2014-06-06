@@ -230,7 +230,7 @@ def cornerDetection(binary):
 	return sudokuEdges
 
 # Creates the transform-matrix to shift the sudoku from the given corners into an new image
-def transform(image, corners):
+def transform(image, corners, size=0):
 	x1 = corners[0][0]
 	y1 = corners[0][1]
 
@@ -243,8 +243,12 @@ def transform(image, corners):
 	x4 = corners[3][0]
 	y4 = corners[3][1]
 
-	height = int(corners[0][1] - corners[1][1])
-	width = int(corners[2][0] - corners[1][0])
+	if size==0:
+		height = int(corners[0][1] - corners[1][1])
+		width = int(corners[2][0] - corners[1][0])
+	else:
+		height = size
+		width = size
 
 	x11 = 0.0
 	y11 = height
@@ -286,7 +290,7 @@ def raster(image):
 	fieldHeight = int(imgHeight/9)
 	fieldWidth = int(imgWidth/9)
 
-	raster = np.zeros((9,9,fieldHeight,fieldWidth,3))
+	raster = np.zeros((9,9,fieldHeight,fieldWidth))
 	
 	y = 0
 	for line in raster:
@@ -297,3 +301,63 @@ def raster(image):
 		y+=1
 
 	return raster
+
+def findNum(image, name, size=20):
+
+	image = np.uint8(image)	
+
+	_image = cv2.morphologyEx(image, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_CROSS, (3,3)), iterations=5)
+
+	# The Canny algorithm detects the edges of the given binary image
+	edges = cv2.Canny(_image, 50, 100, apertureSize=5)
+
+	# findContours, we can use them to find the largest Area in the picture
+	# and assume that this is the number
+	contours, hierarchy = cv2.findContours(edges, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+
+	# We assume that the Contour, with the largest Area is the number
+	# So we loop over all contours and find the largest
+	largestA = 0
+	largestIndex = 0
+
+	i = 0
+	for contour in contours:
+		
+		A = cv2.contourArea(contour)
+
+		if A > largestA:
+			largestA = A
+			largestIndex = i
+		i+=1
+
+	# Take the smallest (possibly rotated) rectangle of the contour
+	bounding = cv2.minAreaRect(contours[largestIndex])
+
+	# And calculate the Coordinates of the corners
+	box = cv2.cv.BoxPoints(bounding)
+
+	# Put X and Y Values in arrays
+	boxX = np.array([int(box[0][0]), int(box[1][0]), int(box[2][0]), int(box[3][0])])
+	boxY = np.array([int(box[0][1]), int(box[1][1]), int(box[2][1]), int(box[3][1])])
+
+	# Get the minima and maxima
+	xMin = boxX.min() - 2
+	xMax = boxX.max() + 2
+	yMin = boxY.min() - 2
+	yMax = boxY.max() + 2
+
+	# Workaround, the minAreaRect can be negative.
+	# If one or more of the Edges are negative, just make them 0
+	# it's not very beautiful, but it works.
+	if xMin < 0:
+		xMin = 0
+	if xMax < 0:
+		xMax = 0
+	if yMin < 0:
+		yMin = 0
+	if yMax < 0:
+		yMax = 0	
+
+	num = transform(image, [[xMin, yMax], [xMin, yMin], [xMax, yMin], [xMax, yMax]], size=size)
+
+	save(name, num)
