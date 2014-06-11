@@ -3,6 +3,7 @@
 
 import sys
 import sFunc
+import numpy as np
 import os.path
 import argparse
 
@@ -25,6 +26,14 @@ if not os.path.isfile(imgIn):
 
 filename = os.path.splitext(os.path.basename(imgIn))[0]
 image = sFunc.open(imgIn)
+
+height = image.shape[0]
+width = image.shape[1]
+
+imgDir = os.path.join('./', filename)
+
+if not os.path.isdir(imgDir):
+	os.mkdir(imgDir)
 
 yFactor = 1
 xFactor = 1
@@ -54,16 +63,14 @@ if os.path.isfile(pts):
 		fileX = int(line[0])
 		fileY = int(line[1])
 
-		x = (x/yFactor)/xFactor
-		y = (y/yFactor)/xFactor
+		x = (x/xFactor)/yFactor
+		y = (y/xFactor)/yFactor
 
-#		ptsFile.write(str(int(x)) + ',' + str(int(y)) + '\n')
-
-		if abs(fileX-x) > 50:
+		if abs(fileX-x) > width*0.02:
 			print "FAILED: " + str(x) + " is not near " + str(fileX)
 			failed = True
 
-		if abs(fileY-y) > 50:
+		if abs(fileY-y) > height*0.02:
 			print "FAILED: " + str(y) + " is not near " + str(fileY)
 			failed = True
 	f.close()
@@ -75,10 +82,30 @@ if failed:
 	print "ERROR: One or more corner-points don't match with the trainings-data, aborting..."
 	sys.exit(-1)
 
-trans = sFunc.transform(image, corners)
+trans = sFunc.transform(binary, corners)
 
 raster = sFunc.raster(trans)
 
-sFunc.save(filename + "_out.jpg", trans)
+gt = ""
+
+ocrImgData, ocrNumData = sFunc.readOCRData("./ocr_train_pts", exclude=filename)
+
+for y in range(0, len(raster)):
+	for x in range(0, len(raster[y])):
+		numImg = sFunc.findNum(raster[y][x])
+		if np.sum(numImg) == 0:
+			gt += "_"
+			continue
+		num = sFunc.ocr(numImg, ocrImgData, ocrNumData)
+		gt += str(int(num))
+	gt += "\n"
+
+f = open(os.path.join(imgDir, filename + ".gt"), 'w')
+
+f.write(gt)
+
+f.close()
+
+sFunc.save(os.path.join(imgDir, filename + ".jpg"), trans)
 
 sys.exit(0)
