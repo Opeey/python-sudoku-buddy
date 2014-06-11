@@ -1,4 +1,5 @@
 import cv2
+import os
 
 import numpy as np
 from numpy import linalg
@@ -302,7 +303,11 @@ def raster(image):
 
 	return raster
 
-def findNum(image, name, size=20):
+def findNum(image):
+	size = 20
+
+	if np.count_nonzero(image) <= (image.shape[0]*image.shape[1])/10:
+		return np.zeros((size, size))
 
 	image = np.uint8(image)	
 
@@ -360,4 +365,85 @@ def findNum(image, name, size=20):
 
 	num = transform(image, [[xMin, yMax], [xMin, yMin], [xMax, yMin], [xMax, yMax]], size=size)
 
-	save(name, num)
+	return num
+
+def readOCRData(path, exclude=""):
+	
+	count = 0
+
+	for imgDir in os.listdir(path):
+		if os.path.isdir(os.path.join(path,imgDir)):
+			if os.path.basename(os.path.join(path,imgDir)) != str(exclude):
+				for numDir in os.listdir(os.path.join(path,imgDir)):
+					if os.path.isdir(os.path.join(path,imgDir,numDir)):
+						for f in os.listdir(os.path.join(path,imgDir,numDir)):
+							if os.path.isfile(os.path.join(path,imgDir,numDir,f)):
+								count+=1
+
+	ocrImgData = np.zeros((count, 20, 20))
+	ocrNumData = np.zeros(count)
+
+	i = 0
+
+	for imgDir in os.listdir(path):
+		if os.path.isdir(os.path.join(path,imgDir)):
+			if os.path.basename(os.path.join(path,imgDir)) != str(exclude):
+				for numDir in os.listdir(os.path.join(path,imgDir)):
+					if os.path.isdir(os.path.join(path,imgDir,numDir)):
+						for f in os.listdir(os.path.join(path,imgDir,numDir)):
+							if os.path.isfile(os.path.join(path,imgDir,numDir,f)):
+								num = int(numDir)
+								img = cv2.imread(os.path.join(path,imgDir,numDir,f), -1)
+								ocrImgData[i] = img
+								ocrNumData[i] = num
+								i+=1
+
+	return ocrImgData, ocrNumData
+
+def ocr(numImg, ocrImgData, ocrNumData):
+	ocrValues = np.zeros(len(ocrImgData))
+
+	i = 0
+	for i in range(0,len(ocrImgData)):
+		val = 0
+		for y in range(0,len(ocrImgData[i])):
+			for x in range(0,len(ocrImgData[i][y])):
+				ocrval = ocrImgData[i][y][x]
+				if ocrval > 0:
+					ocrval = 255
+				else:
+					ocrval = 0
+
+				imgval = numImg[y][x]
+				if imgval > 0:
+					imgval = 255
+				else:
+					imgval = 0
+
+				if ocrval == imgval:
+					val+=1
+				x+=1
+			y+=1
+
+		ocrValues[i] = val
+		i+=1
+
+	first = np.argmax(ocrValues)
+	ocrValues[first] = 0
+
+	second = np.argmax(ocrValues)
+	ocrValues[second] = 0
+
+	third = np.argmax(ocrValues)
+	ocrValues[third] = 0
+
+	num_1 = ocrNumData[first]
+	num_2 = ocrNumData[second]
+	num_3 = ocrNumData[third]
+
+	if (num_1 == num_2) or (num_1 == num_3):
+		return num_1
+	elif (num_2 == num_3):
+		return num_2
+	else:
+		return 0
