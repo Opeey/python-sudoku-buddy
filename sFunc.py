@@ -124,8 +124,7 @@ def cornerDetection(binary):
 	yMax = boxY.max() + 10
 
 	# Workaround, the minAreaRect can be negative.
-	# If one or more of the Edges are negative, just make them 0
-	# it's not very beautiful, but it works.
+	# If one or more of the Edges are negative, just set them to 0
 	if xMin < 0:
 		xMin = 0
 	if xMax < 0:
@@ -303,15 +302,17 @@ def raster(image):
 
 	return raster
 
-def findNum(image):
-	size = 20
+def findNum(image, name="", size=25):
+	_image = np.uint8(image)	
 
-	if np.count_nonzero(image) <= (image.shape[0]*image.shape[1])/10:
-		return np.zeros((size, size))
+	_image = cv2.morphologyEx(_image, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_CROSS, (3,3)), iterations=5)
 
-	image = np.uint8(image)	
+	height = _image.shape[0]
+	width = _image.shape[1]
+	nonzero = np.count_nonzero(_image[(0+(height*0.25)):(height-(height*0.25)),(0+(width*0.25)):(width-(width*0.25))])
 
-	_image = cv2.morphologyEx(image, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_CROSS, (3,3)), iterations=5)
+	if nonzero <= (height-(height*0.5))*(width-(width*0.5))*0.1:
+		return None
 
 	# The Canny algorithm detects the edges of the given binary image
 	edges = cv2.Canny(_image, 50, 100, apertureSize=5)
@@ -352,8 +353,7 @@ def findNum(image):
 	yMax = boxY.max() + 2
 
 	# Workaround, the minAreaRect can be negative.
-	# If one or more of the Edges are negative, just make them 0
-	# it's not very beautiful, but it works.
+	# If one or more of the Edges are negative, just set them to 0
 	if xMin < 0:
 		xMin = 0
 	if xMax < 0:
@@ -365,9 +365,12 @@ def findNum(image):
 
 	num = transform(image, [[xMin, yMax], [xMin, yMin], [xMax, yMin], [xMax, yMax]], size=size)
 
+	if str(name) != "":
+		save(name, num)
+
 	return num
 
-def readOCRData(path, exclude=""):
+def readOCRData(path, exclude="", size=25):
 	
 	count = 0
 
@@ -380,7 +383,7 @@ def readOCRData(path, exclude=""):
 							if os.path.isfile(os.path.join(path,imgDir,numDir,f)):
 								count+=1
 
-	ocrImgData = np.zeros((count, 20, 20))
+	ocrImgData = np.zeros((count, size, size))
 	ocrNumData = np.zeros(count)
 
 	i = 0
@@ -400,10 +403,9 @@ def readOCRData(path, exclude=""):
 
 	return ocrImgData, ocrNumData
 
-def ocr(numImg, ocrImgData, ocrNumData):
+def ocr(numImg, ocrImgData, ocrNumData, N=10):
 	ocrValues = np.zeros(len(ocrImgData))
 
-	i = 0
 	for i in range(0,len(ocrImgData)):
 		val = 0
 		for y in range(0,len(ocrImgData[i])):
@@ -422,28 +424,22 @@ def ocr(numImg, ocrImgData, ocrNumData):
 
 				if ocrval == imgval:
 					val+=1
-				x+=1
-			y+=1
 
 		ocrValues[i] = val
-		i+=1
 
-	first = np.argmax(ocrValues)
-	ocrValues[first] = 0
+	nums = []
 
-	second = np.argmax(ocrValues)
-	ocrValues[second] = 0
+	for i in range(0,N):
+		idx = np.argmax(ocrValues)
+		ocrValues[idx] = 0
 
-	third = np.argmax(ocrValues)
-	ocrValues[third] = 0
+		nums.append(ocrNumData[idx])
 
-	num_1 = ocrNumData[first]
-	num_2 = ocrNumData[second]
-	num_3 = ocrNumData[third]
+	maxVal = 0
+	maxIndex = 0
+	for i in range(0,len(nums)):
+		if maxVal < nums.count(nums[i]):
+			maxIndex = i
+			maxVal = nums.count(nums[i])
 
-	if (num_1 == num_2) or (num_1 == num_3):
-		return num_1
-	elif (num_2 == num_3):
-		return num_2
-	else:
-		return 0
+	return nums[maxIndex]
