@@ -144,7 +144,7 @@ class Sudoku(object):
 					js += "$('.cell[data-i=\""+str(i)+"\"][data-j=\""+str(j)+"\"]').children('p').text('"+str(val)+"');\n"
 					idx+=1
 
-			js+= "$('p').each(function(index) { if(parseInt($(this).text()) != 0) { $(this).show(); }});"
+			js+= "$('p').each(function(index) { if(parseInt($(this).text()) != 0) { $(this).show(); }});\n"
 		
 		if error != "":
 			js+= "openError('"+str(error)+"');"
@@ -157,10 +157,58 @@ class Sudoku(object):
 	# called when an .gt file is uploaded
 	@cherrypy.expose
 	def upload(self, sudoku):
+		_id = getCookie("id")
+		if _id == "":
+			_id = str(uuid.uuid4())
+			addCookie("id", _id)
+
+		if not os.path.isdir(os.path.join('./', 'tmp/')):
+			os.mkdir(os.path.join('./', 'tmp/'))
+
+		filename = os.path.join('./', 'tmp/', _id+'.jpg')
+
+		f = open(filename, "w")
+
+		fileIn = sudoku.file.read()
+
+		f.write(fileIn)
+
+		image = sFunc.open(filename)
+
+		yFactor = 1
+		xFactor = 1
+		if image.shape[1] > 1100:
+			yFactor = 1100.0/image.shape[1]
+			image = sFunc.scale(image, yFactor)
+		if image.shape[0] > 1100:
+			xFactor = 1100.0/image.shape[0]
+			image = sFunc.scale(image, xFactor)
+
+		grey = sFunc.greyscale(image)
+		blurred = sFunc.blur(grey)
+		binary = sFunc.binarize(blurred, 10)
+		corners = sFunc.cornerDetection(binary)
+		trans = sFunc.transform(binary, corners)
+		raster = sFunc.raster(trans)
+
+		size = 25
+
+		ocrPath = os.path.join('../', 'ocrSets/', str(size) + '/', 'ocr_train_pts')
+		ocrImgData, ocrNumData = sFunc.readOCRData(ocrPath, size=size)
+
+		gt = ""
+		for y in range(0, len(raster)):
+			for x in range(0, len(raster[y])):
+				numImg = sFunc.findNum(raster[y][x], size=size)
+				if numImg == None:
+					gt += '_'
+					continue
+				num = sFunc.ocr(numImg, ocrImgData, ocrNumData, N=11)
+				gt += str(int(num))
+			gt += "\n"
 
 		deleteCookie("solution")
-
-		addCookie('sudoku', sudoku.file.read())
+		addCookie('sudoku', gt)
 
 		return self.index(refresh=True)
 
@@ -199,70 +247,9 @@ class Sudoku(object):
 
 		return self.index(refresh=True)
 
-class Images:
-	
-	# upload mask
-	@cherrypy.expose
-	def index(self):		
-		return """
-			<html>
-			<body>
-				<form action="upload" method="post" enctype="multipart/form-data">
-					File: <input type="file" name="sudoku"/> <br/>
-					<input type="submit"/>
-				</form>
-			</body>
-			</html>
-			"""
-	
-	# creates file for the image and processes it
-	@cherrypy.expose
-	def upload(self, sudoku):
-		_id = getCookie("id")
-		if _id == "":
-			_id = str(uuid.uuid4())
-			addCookie("id", _id)
-
-		if not os.path.isdir(os.path.join('./', 'tmp/')):
-			os.mkdir(os.path.join('./', 'tmp/'))
-
-		filename = os.path.join('./', 'tmp/', _id+'.jpg')
-
-		f = open(filename, "w")
-
-		fileIn = sudoku.file.read()
-
-		f.write(fileIn)
-
-		image = sFunc.open(filename)
-
-		yFactor = 1
-		xFactor = 1
-		if image.shape[1] > 1100:
-			yFactor = 1100.0/image.shape[1]
-			image = sFunc.scale(image, yFactor)
-		if image.shape[0] > 1100:
-			xFactor = 1100.0/image.shape[0]
-			image = sFunc.scale(image, xFactor)
-
-		grey = sFunc.greyscale(image)
-		blurred = sFunc.blur(grey)
-
-		binary = sFunc.binarize(blurred, 10)
-
-		corners = sFunc.cornerDetection(binary)
-
-		trans = sFunc.transform(image, corners)
-
-		sFunc.save(filename, trans)
-
-		return "<img src=\""+os.path.join('/', 'tmp/', _id+'.jpg')+"\" alt=\"image\">"
-
-
 # increase server socket timeout to 60s; we are more tolerant of bad
 # quality client-server connections (cherrypy's defult is 10s)
 cherrypy.server.socket_timeout = 60
 
 if __name__ == '__main__':
-	cherrypy.tree.mount(Images(), '/images')
 	cherrypy.quickstart(Sudoku(), '/', 'app.config')

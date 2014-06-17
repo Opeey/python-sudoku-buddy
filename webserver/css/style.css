@@ -76,3 +76,6 @@
 .hidden {
 	display:none;
 }
+
+.rowCorrect, .lineCorrect, .rectCorrect { background-color:LightGreen; }
+.rowError, .lineError, .rectError { background-color:LightCoral !important; }
