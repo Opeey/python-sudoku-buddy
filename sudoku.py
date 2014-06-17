@@ -3,7 +3,6 @@
 
 import sys
 import sFunc
-import numpy as np
 import os.path
 import argparse
 
@@ -29,11 +28,6 @@ image = sFunc.open(imgIn)
 
 height = image.shape[0]
 width = image.shape[1]
-
-imgDir = os.path.join('./', filename)
-
-if not os.path.isdir(imgDir):
-	os.mkdir(imgDir)
 
 yFactor = 1
 xFactor = 1
@@ -88,24 +82,37 @@ raster = sFunc.raster(trans)
 
 gt = ""
 
-ocrImgData, ocrNumData = sFunc.readOCRData("./ocr_train_pts", exclude=filename)
+size = 25
+
+ocrPath = os.path.join('./', 'ocrSets/', str(size) + '/', 'ocr_train_pts')
+
+if not os.path.isdir(ocrPath):
+	print "ERROR: No OCR-Data found. Searched in: " + str(ocrPath)
+	print "NOTE: The program will not finish, please start again with other parameters or create the required data"
+	print "NOTE: You use the size: " + str(size) + " so the pictures should be: " + str(size) + "x" + str(size)
+	sys.exit(-1)
+
+ocrImgData, ocrNumData = sFunc.readOCRData(ocrPath, size=size, exclude=filename)
 
 for y in range(0, len(raster)):
 	for x in range(0, len(raster[y])):
-		numImg = sFunc.findNum(raster[y][x])
-		if np.sum(numImg) == 0:
-			gt += "_"
+		numImg = sFunc.findNum(raster[y][x], size=size)
+		if numImg == None:
+			gt += '_'
 			continue
-		num = sFunc.ocr(numImg, ocrImgData, ocrNumData)
+		num = sFunc.ocr(numImg, ocrImgData, ocrNumData, N=11)
 		gt += str(int(num))
 	gt += "\n"
 
-f = open(os.path.join(imgDir, filename + ".gt"), 'w')
+outputPath = os.path.join('./', 'out/', str(size) + '/')
+
+if not os.path.isdir(outputPath):
+	os.makedirs(outputPath)
+
+f = open(os.path.join(outputPath, filename + ".gt"), 'w')
 
 f.write(gt)
 
 f.close()
-
-sFunc.save(os.path.join(imgDir, filename + ".jpg"), trans)
 
 sys.exit(0)
