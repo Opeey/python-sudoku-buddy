@@ -1,4 +1,5 @@
 import cv2
+import os
 
 import numpy as np
 cimport numpy as np
@@ -14,7 +15,7 @@ def open(char *path):
 	return img
 
 # Saves the given image(numpy-array) into path
-def save(char *path, np.ndarray[np.uint8_t, ndim=3] image):
+def save(char *path, image):
 	cv2.imwrite(path, image)
 
 # Scales an image by given factor
@@ -251,10 +252,10 @@ def cornerDetection(np.ndarray[double, ndim=2] binary):
 	return sudokuEdges
 
 # Creates the transform-matrix to shift the sudoku from the given corners into an new image
-def transform(np.ndarray[np.uint8_t, ndim=3] image, np.ndarray[double, ndim=2] corners):
+def transform(np.ndarray[double, ndim=2] image, np.ndarray[double, ndim=2] corners, int size=0):
 	cdef np.ndarray[double, ndim=1] b, N
 	cdef np.ndarray[double, ndim=2] a, M
-	cdef np.ndarray[np.uint8_t, ndim=3] T
+	cdef np.ndarray[double, ndim=2] T
 	cdef double x1, y1, x2, y2, x3, y3, x4, y4, x11, y11, x22, y22, x33, y33, x44, y44
 	cdef int height, width
 
@@ -270,8 +271,13 @@ def transform(np.ndarray[np.uint8_t, ndim=3] image, np.ndarray[double, ndim=2] c
 	x4 = corners[3][0]
 	y4 = corners[3][1]
 
-	height = int(corners[0][1] - corners[1][1])
-	width = int(corners[2][0] - corners[1][0])
+
+	if size==0:
+		height = int(corners[0][1] - corners[1][1])
+		width = int(corners[2][0] - corners[1][0])
+	else:
+		height = size
+		width = size
 
 	x11 = 0.0
 	y11 = height
@@ -305,10 +311,10 @@ def transform(np.ndarray[np.uint8_t, ndim=3] image, np.ndarray[double, ndim=2] c
 
 	return T
 
-# Creates an array which holds any field in the sudoku
-def raster(np.ndarray[np.uint8_t, ndim=3] image):
+# Creates an array which holds the 81 fields in the sudoku
+def raster(np.ndarray[double, ndim=2] image):
 	cdef int imgHeight, imgWidth, fieldHeight, fieldWidth
-	cdef np.ndarray[double, ndim=5] raster
+	cdef np.ndarray[double, ndim=4] raster
 
 	imgHeight = image.shape[0]
 	imgWidth = image.shape[1]
@@ -316,7 +322,7 @@ def raster(np.ndarray[np.uint8_t, ndim=3] image):
 	fieldHeight = int(imgHeight/9)
 	fieldWidth = int(imgWidth/9)
 
-	raster = np.zeros((9,9,fieldHeight,fieldWidth,3))
+	raster = np.zeros((9,9,fieldHeight,fieldWidth))
 	
 	y = 0
 	for line in raster:
@@ -327,3 +333,160 @@ def raster(np.ndarray[np.uint8_t, ndim=3] image):
 		y+=1
 
 	return raster
+
+# Takes 1 of the 81 fields, assumes that the biggest contour is the number. The number will be scaled to size x size and returned.
+def findNum(np.ndarray[double, ndim=2] image, char *name="", int size=25):
+	cdef np.ndarray[np.uint8_t, ndim=2] _image, edges
+	cdef np.ndarray[np.long_t, ndim=1] boxX, boxY
+	cdef tuple bounding
+	cdef int largestA, largestIndex, i, A, xMin, xMax, yMin, yMax, maxLength
+	cdef np.ndarray[double, ndim=2] num
+	cdef int height, width, nonzero
+
+	_image = np.uint8(image)	
+
+	_image = cv2.morphologyEx(_image, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_CROSS, (3,3)), iterations=5)
+
+	height = _image.shape[0]
+	width = _image.shape[1]
+	nonzero = np.count_nonzero(_image[(0+(height*0.25)):(height-(height*0.25)),(0+(width*0.25)):(width-(width*0.25))])
+
+	if nonzero <= (height-(height*0.5))*(width-(width*0.5))*0.1:
+		return None
+
+	# The Canny algorithm detects the edges of the given binary image
+	edges = cv2.Canny(_image, 50, 100, apertureSize=5)
+
+	# findContours, we can use them to find the largest Area in the picture
+	# and assume that this is the number
+	contours, hierarchy = cv2.findContours(edges, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+
+	# We assume that the Contour, with the largest Area is the number
+	# So we loop over all contours and find the largest
+	largestA = 0
+	largestIndex = 0
+
+	i = 0
+	for contour in contours:
+		
+		A = cv2.contourArea(contour)
+
+		if A > largestA:
+			largestA = A
+			largestIndex = i
+		i+=1
+
+	# Take the smallest (possibly rotated) rectangle of the contour
+	bounding = cv2.minAreaRect(contours[largestIndex])
+
+	# And calculate the Coordinates of the corners
+	box = cv2.cv.BoxPoints(bounding)
+
+	# Put X and Y Values in arrays
+	boxX = np.array([int(box[0][0]), int(box[1][0]), int(box[2][0]), int(box[3][0])])
+	boxY = np.array([int(box[0][1]), int(box[1][1]), int(box[2][1]), int(box[3][1])])
+
+	# Get the minima and maxima
+	xMin = boxX.min() - 2
+	xMax = boxX.max() + 2
+	yMin = boxY.min() - 2
+	yMax = boxY.max() + 2
+
+	# Workaround, the minAreaRect can be negative.
+	# If one or more of the Edges are negative, just set them to 0
+	if xMin < 0:
+		xMin = 0
+	if xMax < 0:
+		xMax = 0
+	if yMin < 0:
+		yMin = 0
+	if yMax < 0:
+		yMax = 0	
+
+	num = transform(image, np.double([[xMin, yMax], [xMin, yMin], [xMax, yMin], [xMax, yMax]]), size)
+
+	if str(name) != "":
+		save(name, num)
+
+	return num
+
+def readOCRData(char *path, char *exclude="", int size=25):
+	cdef np.ndarray[double, ndim=3] ocrImgData
+	cdef np.ndarray[double, ndim=1] ocrNumData
+	cdef int count, num, i
+
+	count = 0
+
+	for imgDir in os.listdir(path):
+		if os.path.isdir(os.path.join(path,imgDir)):
+			if os.path.basename(os.path.join(path,imgDir)) != str(exclude):
+				for numDir in os.listdir(os.path.join(path,imgDir)):
+					if os.path.isdir(os.path.join(path,imgDir,numDir)):
+						for f in os.listdir(os.path.join(path,imgDir,numDir)):
+							if os.path.isfile(os.path.join(path,imgDir,numDir,f)):
+								count+=1
+
+	ocrImgData = np.zeros((count, size, size))
+	ocrNumData = np.zeros(count)
+
+	i = 0
+
+	for imgDir in os.listdir(path):
+		if os.path.isdir(os.path.join(path,imgDir)):
+			if os.path.basename(os.path.join(path,imgDir)) != str(exclude):
+				for numDir in os.listdir(os.path.join(path,imgDir)):
+					if os.path.isdir(os.path.join(path,imgDir,numDir)):
+						for f in os.listdir(os.path.join(path,imgDir,numDir)):
+							if os.path.isfile(os.path.join(path,imgDir,numDir,f)):
+								num = int(numDir)
+								img = cv2.imread(os.path.join(path,imgDir,numDir,f), -1)
+								ocrImgData[i] = img
+								ocrNumData[i] = num
+								i+=1
+
+	return ocrImgData, ocrNumData
+
+def ocr(np.ndarray[double, ndim=2] numImg, np.ndarray[double, ndim=3] ocrImgData, np.ndarray[double, ndim=1]ocrNumData, int N=10):
+	cdef np.ndarray[double, ndim=1] ocrValues
+	cdef int i, val, ocrval, imgval, maxVal, maxIndex
+	cdef list nums
+
+	ocrValues = np.zeros(len(ocrImgData))
+
+	for i in range(0,len(ocrImgData)):
+		val = 0
+		for y in range(0,len(ocrImgData[i])):
+			for x in range(0,len(ocrImgData[i][y])):
+				ocrval = ocrImgData[i][y][x]
+				if ocrval > 0:
+					ocrval = 255
+				else:
+					ocrval = 0
+
+				imgval = numImg[y][x]
+				if imgval > 0:
+					imgval = 255
+				else:
+					imgval = 0
+
+				if ocrval == imgval:
+					val+=1
+
+		ocrValues[i] = val
+
+	nums = []
+
+	for i in range(0,N):
+		idx = np.argmax(ocrValues)
+		ocrValues[idx] = 0
+
+		nums.append(ocrNumData[idx])
+
+	maxVal = 0
+	maxIndex = 0
+	for i in range(0,len(nums)):
+		if maxVal < nums.count(nums[i]):
+			maxIndex = i
+			maxVal = nums.count(nums[i])
+
+	return nums[maxIndex]
