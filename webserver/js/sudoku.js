@@ -186,4 +186,15 @@ $(document).ready(function(){
 		$(this).parent().submit();
 	});
 
+	$(".hover #hoverButton").click(function() {
+		if ($('.image').css('opacity') == 1.0) {
+			$('.image').fadeTo("slow", 0.3);
+			$('.rect').fadeTo("slow", 1.0);
+			$(this).val('Bild einblenden');
+		} else {
+			$('.image').fadeTo("slow", 1.0);
+			$('.rect').fadeTo("slow", 0.1);
+			$(this).val('Bild ausblenden');
+		}
+	});
 });

@@ -5,7 +5,7 @@
 }
 
 .navi {
-	width: 720px;
+	width: 900px;
 	height: 50px;
 	margin: auto;
 }
@@ -15,15 +15,26 @@
 	margin-left: 10px;
 }
 
+.navi .hover {
+	float:right;
+}
+
 .sudoku {
+	z-index: 1;
 	margin: auto;
-	width: 720px;
+	width: 654px;
+	height: 654px;
 }
 
 .rect {
-	width: 220px;
-	height: 220px;
+	width: 216px;
+	height: 216px;
+	padding: 0 3px 3px 0;
 	float:left;
+}
+
+.last {
+	padding: 0 0 3px 0;
 }
 
 .cell {
@@ -47,7 +58,6 @@
 .error {
 	display: none;
 	width: 720px;
-	height: 40px;
 	background: #FF9494;
 	border: 1px solid;
 	margin: 15px 0 10px 255px;
@@ -79,3 +89,18 @@
 
 .rowCorrect, .lineCorrect, .rectCorrect { background-color:LightGreen; }
 .rowError, .lineError, .rectError { background-color:LightCoral !important; }
+
+.image {
+	z-index: -1;
+	position: absolute;
+	opacity: 0.3;
+}
+
+.image img {
+	width: 656px;
+	height: 656px;
+}
+
+.hover {
+	font-size: 20px;
+}

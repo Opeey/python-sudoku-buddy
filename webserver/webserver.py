@@ -97,6 +97,12 @@ class Sudoku(object):
 
 						});
 
+						function showImage(img) {
+							var $this = $(".image");
+
+							$this.append('<img src="' + img + '" />');
+						};
+
 						"""+str(ownCode)+"""
 
 					})
@@ -125,6 +131,8 @@ class Sudoku(object):
 		if solution != "":
 			sudoku = solution
 
+		image = getCookie("image")
+
 		js=""
 
 		if (sudoku != ""):
@@ -147,7 +155,10 @@ class Sudoku(object):
 			js+= "$('p').each(function(index) { if(parseInt($(this).text()) != 0) { $(this).show(); }});\n"
 		
 		if error != "":
-			js+= "openError('"+str(error)+"');"
+			js+= "openError('"+str(error)+"');\n"
+
+		if image != "":
+			js+= "showImage('"+str(image)+"');\n"
 
 		head = self.printHead(js)
 		body = self.printBody()
@@ -157,6 +168,10 @@ class Sudoku(object):
 	# called when an .gt file is uploaded
 	@cherrypy.expose
 	def upload(self, sudoku):
+		deleteCookie("solution")
+		deleteCookie("sudoku")
+		deleteCookie('image')
+
 		_id = getCookie("id")
 		if _id == "":
 			_id = str(uuid.uuid4())
@@ -175,6 +190,9 @@ class Sudoku(object):
 
 		image = sFunc.open(filename)
 
+		if image is None:
+			return self.index(error="Die hochgeladene Datei ist kein Bild oder konnte nicht gelesen werden!")
+
 		yFactor = 1
 		xFactor = 1
 		if image.shape[1] > 1100:
@@ -184,35 +202,43 @@ class Sudoku(object):
 			xFactor = 1100.0/image.shape[0]
 			image = sFunc.scale(image, xFactor)
 
-		grey = sFunc.greyscale(image)
-		blurred = sFunc.blur(grey)
-		binary = sFunc.binarize(blurred, 10)
-		corners = sFunc.cornerDetection(binary)
-		trans = sFunc.transform(binary, corners)
-		raster = sFunc.raster(trans)
+		try:
+			grey = sFunc.greyscale(image)
+			blurred = sFunc.blur(grey)
+			binary = sFunc.binarize(blurred, 10)
+			corners = sFunc.cornerDetection(binary)
+			trans = sFunc.transform(binary, corners)
+			sFunc.save(filename, sFunc.transform(grey, corners))
+			raster = sFunc.raster(trans)
+		except:
+			return self.index(error="Auf dem Bild wurde kein Sudoku erkannt!")
 
 		size = 25
 
-		ocrPath = os.path.join('../', 'ocrSets/', str(size) + '/', 'ocr_train_pts')
-		ocrImgData, ocrNumData = sFunc.readOCRData(ocrPath, size=size)
+		try:
+			ocrPath = os.path.join('../', 'ocrSets/', str(size) + '/', 'ocr_train_pts')
+			ocrImgData, ocrNumData = sFunc.readOCRData(ocrPath, size=size)
 
-		gt = ""
-		for y in range(0, len(raster)):
-			for x in range(0, len(raster[y])):
-				numImg = sFunc.findNum(raster[y][x], size=size)
-				if numImg == None:
-					gt += '_'
-					continue
-				num = sFunc.ocr(numImg, ocrImgData, ocrNumData, N=11)
-				gt += str(int(num))
-			gt += "\n"
+			gt = ""
+			for y in range(0, len(raster)):
+				for x in range(0, len(raster[y])):
+					numImg = sFunc.findNum(raster[y][x], size=size)
+					if numImg == None:
+						gt += '_'
+						continue
+					num = sFunc.ocr(numImg, ocrImgData, ocrNumData, N=8)
+					gt += str(int(num))
+				gt += "\n"
+		except:
+			return self.index(error="Das Sudoku konnte nicht verarbeitet werden!")
 
 		deleteCookie("solution")
 		addCookie('sudoku', gt)
+		addCookie('image', filename)
 
 		return self.index(refresh=True)
 
-	# solves the sudoku and writes the return in a cookie
+	# solves the sudoku and writes the solution in a cookie
 	@cherrypy.expose
 	def solve(self):
 		cookie = cherrypy.request.cookie
@@ -228,7 +254,7 @@ class Sudoku(object):
 		for el in csolution:
 			solution+=str(el)
 
-		if solution == "000000000000000000000000000000000000000000000000000000000000000000000000000000000":
+		if solution == 81*"0":
 			return self.index(error="Zum eingegebenen Sudoku konnte keine Lösung berechnet werden!")
 
 		cookie = cherrypy.response.cookie
@@ -244,12 +270,12 @@ class Sudoku(object):
 
 		deleteCookie("solution")
 		deleteCookie("sudoku")
+		deleteCookie('image')
 
 		return self.index(refresh=True)
 
-# increase server socket timeout to 60s; we are more tolerant of bad
-# quality client-server connections (cherrypy's defult is 10s)
-cherrypy.server.socket_timeout = 60
+# increase server socket timeout to 120s
+cherrypy.server.socket_timeout = 120
 
 if __name__ == '__main__':
 	cherrypy.quickstart(Sudoku(), '/', 'app.config')
