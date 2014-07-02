@@ -32,7 +32,8 @@ image = sFunc.open(imgIn)
 height = image.shape[0]
 width = image.shape[1]
 
-imgDir = os.path.join('./', 'ocrSets/', str(size) + "/", 'ocr_train_pts/', filename)
+# imgDir = os.path.join('./', 'ocrSets/', 'ocr_train_pts_gt/', filename)
+imgDir = os.path.join('./', 'ocrSets/', 'ocr_train_pts/', filename)
 
 if not os.path.isdir(imgDir):
 	os.makedirs(imgDir)
@@ -55,6 +56,7 @@ corners = sFunc.cornerDetection(binary)
 
 pts = os.path.join('./', 'pts', filename+'.pts')
 
+
 failed = False
 # check for valid corners, if pts file is specified
 if os.path.isfile(pts):
@@ -76,18 +78,18 @@ if os.path.isfile(pts):
 			print "FAILED: " + str(y) + " is not near " + str(fileY)
 			failed = True
 	f.close()
-
 else:
-	print "WARNING: No .pts file found"
+	print "WARNING: No .pts file found, continue without checking corners..."
 
 if failed:
 	print "ERROR: One or more corner-points don't match with the trainings-data, aborting..."
 	sys.exit(-1)
 
-# Generation of OCR, based on groundthrough
 
+
+# Generation of OCR, based on groundtruth
 """
-corners = np.array([[0,0],[0,0],[0,0],[0,0]])
+corners = np.double([[0,0],[0,0],[0,0],[0,0]])
 
 f = open(pts, 'r')
 
@@ -136,6 +138,6 @@ for y in range(0, len(raster)):
 			if not os.path.isdir(numDir):
 				os.mkdir(numDir)
 			name = os.path.join(numDir, str((y*9) + (x+1)) + ".jpg")
-			sFunc.findNum(raster[y][x], name, size)
+			sFunc.findNum(raster[y][x], name, size, str((y*9) + (x+1)) + ".jpg")
 
 sys.exit(0)

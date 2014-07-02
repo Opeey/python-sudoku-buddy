@@ -302,17 +302,24 @@ def raster(image):
 
 	return raster
 
+# Takes 1 of the 81 fields, assumes that the biggest contour is the number. The number will be scaled to size x size and returned.
 def findNum(image, name="", size=25):
-	_image = np.uint8(image)	
+	height = image.shape[0]
+	width = image.shape[1]
 
-	_image = cv2.morphologyEx(_image, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_CROSS, (3,3)), iterations=5)
+	skippedCutting = False
 
-	height = _image.shape[0]
-	width = _image.shape[1]
-	nonzero = np.count_nonzero(_image[(0+(height*0.25)):(height-(height*0.25)),(0+(width*0.25)):(width-(width*0.25))])
+	nonzero = np.count_nonzero(image[int((0+(height*0.25))):int((height-(height*0.25))),int((0+(width*0.25))):int((width-(width*0.25)))])
 
-	if nonzero <= (height-(height*0.5))*(width-(width*0.5))*0.1:
+	_image = np.uint8(image)
+
+	if nonzero <= ((height-(height*0.5))*(width-(width*0.5)))*0.1:
 		return None
+
+	if (height*width) >= 1300:
+		_image = cv2.morphologyEx(_image, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5,5)), iterations=3)
+	else:
+		_image = cv2.morphologyEx(_image, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_CROSS, (3,3)), iterations=4)
 
 	# The Canny algorithm detects the edges of the given binary image
 	edges = cv2.Canny(_image, 50, 100, apertureSize=5)
@@ -325,13 +332,21 @@ def findNum(image, name="", size=25):
 	# So we loop over all contours and find the largest
 	largestA = 0
 	largestIndex = 0
+	prevLargest = 0
 
 	i = 0
 	for contour in contours:
-		
+
 		A = cv2.contourArea(contour)
 
 		if A > largestA:
+			if ((height*width) < 1300) and (A >= 0.1*(_image.shape[0]*_image.shape[1])):
+				print "SKIPPED: " + str(A) + " - " + str(_image.shape[0]*_image.shape[1])
+				continue
+			elif A >= 0.3*(_image.shape[0]*_image.shape[1]):
+				print "SKIPPED: " + str(A) + " - " + str(_image.shape[0]*_image.shape[1])
+				continue
+			prevLargest = largestA
 			largestA = A
 			largestIndex = i
 		i+=1
@@ -347,10 +362,10 @@ def findNum(image, name="", size=25):
 	boxY = np.array([int(box[0][1]), int(box[1][1]), int(box[2][1]), int(box[3][1])])
 
 	# Get the minima and maxima
-	xMin = boxX.min() - 2
-	xMax = boxX.max() + 2
-	yMin = boxY.min() - 2
-	yMax = boxY.max() + 2
+	xMin = boxX.min()
+	xMax = boxX.max()
+	yMin = boxY.min()
+	yMax = boxY.max()
 
 	# Workaround, the minAreaRect can be negative.
 	# If one or more of the Edges are negative, just set them to 0
@@ -363,7 +378,7 @@ def findNum(image, name="", size=25):
 	if yMax < 0:
 		yMax = 0	
 
-	num = transform(image, [[xMin, yMax], [xMin, yMin], [xMax, yMin], [xMax, yMax]], size=size)
+	num = transform(image, np.double([[xMin, yMax], [xMin, yMin], [xMax, yMin], [xMax, yMax]]), size)
 
 	if str(name) != "":
 		save(name, num)
@@ -371,7 +386,6 @@ def findNum(image, name="", size=25):
 	return num
 
 def readOCRData(path, exclude="", size=25):
-	
 	count = 0
 
 	for imgDir in os.listdir(path):
@@ -405,20 +419,21 @@ def readOCRData(path, exclude="", size=25):
 
 def ocr(numImg, ocrImgData, ocrNumData, N=10):
 	ocrValues = np.zeros(len(ocrImgData))
-
+	
+	# pixel matching
 	for i in range(0,len(ocrImgData)):
 		val = 0
 		for y in range(0,len(ocrImgData[i])):
 			for x in range(0,len(ocrImgData[i][y])):
 				ocrval = ocrImgData[i][y][x]
 				if ocrval > 0:
-					ocrval = 255
+					ocrval = 1
 				else:
 					ocrval = 0
 
 				imgval = numImg[y][x]
 				if imgval > 0:
-					imgval = 255
+					imgval = 1
 				else:
 					imgval = 0
 
@@ -442,4 +457,4 @@ def ocr(numImg, ocrImgData, ocrNumData, N=10):
 			maxIndex = i
 			maxVal = nums.count(nums[i])
 
-	return nums[maxIndex]
+	return nums[maxIndex

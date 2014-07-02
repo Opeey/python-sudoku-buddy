@@ -466,33 +466,6 @@ def ocr(np.ndarray[double, ndim=2] numImg, np.ndarray[double, ndim=3] ocrImgData
 	cdef list nums
 
 	ocrValues = np.zeros(len(ocrImgData))
-
-	# histrogram
-	"""
-	histogram = np.zeros((2, numImg.shape[0]))
-	for y in range(0,len(numImg)):
-		for x in range(0,len(numImg[y])):
-			if numImg[y][x] > 0:
-				histogram[0][x]+=1
-				histogram[1][y]+=1
-
-	for i in range(0,len(ocrImgData)):
-		val = 0
-
-		thisHistogram = np.zeros((2, ocrImgData[i].shape[0]))
-		for y in range(0,len(ocrImgData[i])):
-			for x in range(0,len(ocrImgData[i][y])):
-				if ocrImgData[i][y][x] > 0:
-					thisHistogram[0][x]+=1
-					thisHistogram[1][y]+=1
-
-		for y in range(0,len(thisHistogram)):
-			for x in range(0,len(thisHistogram[y])):
-				if thisHistogram[y][x] == histogram[y][x]:
-					val+=1
-
-		ocrValues[i] = val
-	"""
 	
 	# pixel matching
 	for i in range(0,len(ocrImgData)):
